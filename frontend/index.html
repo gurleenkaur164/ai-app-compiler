@@ -1,0 +1,935 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AppForge — Natural Language to App Config</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #111118;
+    --surface2: #1a1a24;
+    --border: #2a2a3a;
+    --accent: #6c63ff;
+    --accent2: #ff6b6b;
+    --accent3: #43e97b;
+    --text: #e8e8f0;
+    --muted: #666680;
+    --code-bg: #0d0d15;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Syne', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Grid background */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(108,99,255,0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(108,99,255,0.04) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .container { max-width: 1200px; margin: 0 auto; padding: 0 24px; position: relative; z-index: 1; }
+
+  /* HEADER */
+  header {
+    padding: 32px 0 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .logo-icon {
+    width: 40px; height: 40px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px;
+  }
+
+  .logo h1 {
+    font-size: 22px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+  }
+
+  .logo span { color: var(--accent); }
+
+  .badge {
+    background: rgba(108,99,255,0.15);
+    border: 1px solid rgba(108,99,255,0.3);
+    color: var(--accent);
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    padding: 4px 10px;
+    border-radius: 4px;
+  }
+
+  /* HERO */
+  .hero {
+    padding: 60px 0 40px;
+    text-align: center;
+  }
+
+  .hero-tag {
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    color: var(--accent);
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    margin-bottom: 20px;
+  }
+
+  .hero h2 {
+    font-size: clamp(32px, 5vw, 56px);
+    font-weight: 800;
+    line-height: 1.1;
+    letter-spacing: -2px;
+    margin-bottom: 16px;
+  }
+
+  .hero h2 em {
+    font-style: normal;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .hero p {
+    color: var(--muted);
+    font-size: 16px;
+    max-width: 500px;
+    margin: 0 auto;
+    line-height: 1.6;
+  }
+
+  /* PIPELINE STAGES */
+  .stages {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0;
+    margin: 40px 0;
+    flex-wrap: wrap;
+  }
+
+  .stage {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    transition: all 0.3s;
+  }
+
+  .stage.active { border-color: var(--accent); color: var(--accent); background: rgba(108,99,255,0.1); }
+  .stage.done { border-color: var(--accent3); color: var(--accent3); background: rgba(67,233,123,0.08); }
+  .stage.error { border-color: var(--accent2); color: var(--accent2); background: rgba(255,107,107,0.08); }
+
+  .stage-arrow {
+    color: var(--border);
+    font-family: 'Space Mono', monospace;
+    font-size: 16px;
+    margin: 0 4px;
+  }
+
+  .stage-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+  }
+
+  /* INPUT AREA */
+  .input-section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 24px;
+    margin-bottom: 24px;
+  }
+
+  .input-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+
+  textarea {
+    width: 100%;
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+    color: var(--text);
+    font-family: 'Space Mono', monospace;
+    font-size: 13px;
+    line-height: 1.6;
+    resize: vertical;
+    min-height: 100px;
+    transition: border-color 0.2s;
+    outline: none;
+  }
+
+  textarea:focus { border-color: var(--accent); }
+  textarea::placeholder { color: var(--muted); }
+
+  .examples {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-top: 12px;
+  }
+
+  .example-btn {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    padding: 5px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .example-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+  .actions {
+    display: flex;
+    gap: 12px;
+    margin-top: 16px;
+    align-items: center;
+  }
+
+  .btn-generate {
+    background: linear-gradient(135deg, var(--accent), #8b80ff);
+    color: white;
+    border: none;
+    padding: 14px 32px;
+    border-radius: 10px;
+    font-family: 'Syne', sans-serif;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .btn-generate:hover { transform: translateY(-1px); box-shadow: 0 8px 24px rgba(108,99,255,0.4); }
+  .btn-generate:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
+
+  .btn-clear {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    padding: 14px 20px;
+    border-radius: 10px;
+    font-family: 'Syne', sans-serif;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .btn-clear:hover { border-color: var(--accent2); color: var(--accent2); }
+
+  /* STATUS */
+  .status-bar {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 18px;
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    margin-bottom: 24px;
+    display: none;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .status-bar.show { display: flex; }
+  .status-bar.loading { border-color: var(--accent); }
+  .status-bar.success { border-color: var(--accent3); color: var(--accent3); }
+  .status-bar.error { border-color: var(--accent2); color: var(--accent2); }
+
+  .spinner {
+    width: 14px; height: 14px;
+    border: 2px solid rgba(108,99,255,0.3);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    flex-shrink: 0;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* METRICS BAR */
+  .metrics-bar {
+    display: none;
+    gap: 16px;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+  }
+
+  .metrics-bar.show { display: flex; }
+
+  .metric-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 18px;
+    flex: 1;
+    min-width: 120px;
+  }
+
+  .metric-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 6px;
+  }
+
+  .metric-value {
+    font-size: 22px;
+    font-weight: 800;
+    color: var(--accent);
+  }
+
+  /* RESULTS */
+  .results-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+
+  @media (max-width: 768px) { .results-grid { grid-template-columns: 1fr; } }
+
+  .result-panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+
+  .panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface2);
+  }
+
+  .panel-title {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .panel-dot { width: 8px; height: 8px; border-radius: 50%; }
+  .dot-ui { background: #ff9f43; }
+  .dot-api { background: var(--accent); }
+  .dot-db { background: var(--accent3); }
+  .dot-auth { background: var(--accent2); }
+  .dot-biz { background: #ffeaa7; }
+  .dot-exec { background: #74b9ff; }
+
+  .copy-btn {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    padding: 4px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .copy-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+  .panel-content {
+    padding: 16px;
+    max-height: 320px;
+    overflow-y: auto;
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    line-height: 1.6;
+    color: #c8c8e0;
+    background: var(--code-bg);
+    white-space: pre-wrap;
+    word-break: break-all;
+  }
+
+  /* scrollbar */
+  .panel-content::-webkit-scrollbar { width: 4px; }
+  .panel-content::-webkit-scrollbar-track { background: transparent; }
+  .panel-content::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  /* VALIDATION PANEL */
+  .validation-panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    margin-bottom: 24px;
+  }
+
+  .val-items { padding: 16px; display: flex; flex-direction: column; gap: 8px; }
+
+  .val-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    padding: 8px 12px;
+    border-radius: 6px;
+  }
+
+  .val-item.error { background: rgba(255,107,107,0.08); color: #ff6b6b; }
+  .val-item.warning { background: rgba(255,234,167,0.08); color: #ffeaa7; }
+  .val-item.ok { background: rgba(67,233,123,0.08); color: #43e97b; }
+
+  /* EXEC REPORT */
+  .exec-checks { padding: 16px; display: flex; flex-direction: column; gap: 8px; }
+  .exec-check {
+    display: flex; align-items: center; gap: 10px;
+    font-family: 'Space Mono', monospace; font-size: 11px;
+  }
+  .check-icon { font-size: 14px; }
+  .routes-list {
+    padding: 0 16px 16px;
+    display: flex; flex-direction: column; gap: 4px;
+  }
+  .route-tag {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-family: 'Space Mono', monospace; font-size: 10px;
+    padding: 4px 10px; border-radius: 4px;
+    background: rgba(108,99,255,0.1);
+    border: 1px solid rgba(108,99,255,0.2);
+    width: fit-content;
+  }
+  .method { color: var(--accent3); font-weight: 700; }
+  .route-path { color: var(--muted); }
+
+  /* FULL JSON */
+  .full-output {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    margin-bottom: 40px;
+  }
+
+  .full-output pre {
+    padding: 20px;
+    background: var(--code-bg);
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    line-height: 1.6;
+    color: #c8c8e0;
+    overflow-x: auto;
+    max-height: 500px;
+    overflow-y: auto;
+    white-space: pre-wrap;
+    word-break: break-all;
+  }
+
+  /* hidden by default */
+  .output-section { display: none; }
+  .output-section.show { display: block; }
+
+  /* ASSUMPTIONS */
+  .assumptions-panel {
+    background: rgba(108,99,255,0.06);
+    border: 1px solid rgba(108,99,255,0.2);
+    border-radius: 10px;
+    padding: 16px;
+    margin-bottom: 24px;
+  }
+
+  .assumptions-panel h4 {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    color: var(--accent);
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    margin-bottom: 10px;
+  }
+
+  .assumptions-panel ul {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .assumptions-panel li {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    display: flex;
+    gap: 8px;
+  }
+
+  .assumptions-panel li::before { content: '→'; color: var(--accent); }
+
+  footer {
+    border-top: 1px solid var(--border);
+    padding: 24px 0;
+    text-align: center;
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+  }
+
+  /* JSON syntax highlighting */
+  .json-key { color: #c792ea; }
+  .json-str { color: #c3e88d; }
+  .json-num { color: #f78c6c; }
+  .json-bool { color: #89ddff; }
+  .json-null { color: #888; }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <header>
+    <div class="logo">
+      <div class="logo-icon">⚙️</div>
+      <h1>App<span>Forge</span></h1>
+    </div>
+    <div class="badge">v1.0 · Groq LLaMA 3.3</div>
+  </header>
+
+  <section class="hero">
+    <div class="hero-tag">// Natural Language → App Config Compiler</div>
+    <h2>Describe your app.<br><em>We build the blueprint.</em></h2>
+    <p>Multi-stage pipeline: Intent → Architecture → Schema → Validation → Execution-ready JSON</p>
+  </section>
+
+  <!-- Pipeline Stages Indicator -->
+  <div class="stages" id="pipelineStages">
+    <div class="stage" id="s1"><div class="stage-dot"></div>01 Intent</div>
+    <div class="stage-arrow">→</div>
+    <div class="stage" id="s2"><div class="stage-dot"></div>02 Architecture</div>
+    <div class="stage-arrow">→</div>
+    <div class="stage" id="s3"><div class="stage-dot"></div>03 Schema</div>
+    <div class="stage-arrow">→</div>
+    <div class="stage" id="s4"><div class="stage-dot"></div>04 Refinement</div>
+    <div class="stage-arrow">→</div>
+    <div class="stage" id="s5"><div class="stage-dot"></div>05 Validate</div>
+    <div class="stage-arrow">→</div>
+    <div class="stage" id="s6"><div class="stage-dot"></div>06 Output</div>
+  </div>
+
+  <!-- Input -->
+  <div class="input-section">
+    <div class="input-label">// App Description</div>
+    <textarea id="promptInput" placeholder="e.g. Build a CRM with login, contacts, dashboard, role-based access for admin and sales reps, and a premium plan with Stripe payments. Admins can see analytics.&#10;&#10;Be as detailed or as vague as you want — we'll handle the rest." rows="5"></textarea>
+
+    <div class="examples">
+      <span style="font-family:'Space Mono',monospace;font-size:10px;color:var(--muted);align-self:center;">Try:</span>
+      <button class="example-btn" onclick="setExample(0)">CRM + Payments</button>
+      <button class="example-btn" onclick="setExample(1)">E-Commerce</button>
+      <button class="example-btn" onclick="setExample(2)">SaaS Dashboard</button>
+      <button class="example-btn" onclick="setExample(3)">Healthcare App</button>
+      <button class="example-btn" onclick="setExample(4)">Vague (edge case)</button>
+    </div>
+
+    <div class="actions">
+      <button class="btn-generate" id="generateBtn" onclick="generate()">
+        <span>⚙</span> Generate Config
+      </button>
+      <button class="btn-clear" onclick="clearAll()">Clear</button>
+    </div>
+  </div>
+
+  <!-- Status -->
+  <div class="status-bar" id="statusBar">
+    <div class="spinner" id="statusSpinner"></div>
+    <span id="statusText">Initializing pipeline...</span>
+  </div>
+
+  <!-- Metrics -->
+  <div class="metrics-bar" id="metricsBar">
+    <div class="metric-card">
+      <div class="metric-label">Total Time</div>
+      <div class="metric-value" id="mTime">—</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">Tokens Used</div>
+      <div class="metric-value" id="mTokens">—</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">Retries</div>
+      <div class="metric-value" id="mRetries">—</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">Repairs</div>
+      <div class="metric-value" id="mRepairs">—</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">Valid</div>
+      <div class="metric-value" id="mValid">—</div>
+    </div>
+  </div>
+
+  <!-- Output -->
+  <div class="output-section" id="outputSection">
+
+    <!-- Assumptions -->
+    <div class="assumptions-panel" id="assumptionsPanel" style="display:none">
+      <h4>// Assumptions Made</h4>
+      <ul id="assumptionsList"></ul>
+    </div>
+
+    <!-- Validation -->
+    <div class="validation-panel">
+      <div class="panel-header">
+        <div class="panel-title"><div class="panel-dot dot-exec"></div>Validation Report</div>
+      </div>
+      <div class="val-items" id="valItems"></div>
+    </div>
+
+    <!-- Results Grid -->
+    <div class="results-grid">
+      <div class="result-panel">
+        <div class="panel-header">
+          <div class="panel-title"><div class="panel-dot dot-ui"></div>UI Schema</div>
+          <button class="copy-btn" onclick="copyPanel('uiContent')">Copy</button>
+        </div>
+        <div class="panel-content" id="uiContent"></div>
+      </div>
+
+      <div class="result-panel">
+        <div class="panel-header">
+          <div class="panel-title"><div class="panel-dot dot-api"></div>API Schema</div>
+          <button class="copy-btn" onclick="copyPanel('apiContent')">Copy</button>
+        </div>
+        <div class="panel-content" id="apiContent"></div>
+      </div>
+
+      <div class="result-panel">
+        <div class="panel-header">
+          <div class="panel-title"><div class="panel-dot dot-db"></div>DB Schema</div>
+          <button class="copy-btn" onclick="copyPanel('dbContent')">Copy</button>
+        </div>
+        <div class="panel-content" id="dbContent"></div>
+      </div>
+
+      <div class="result-panel">
+        <div class="panel-header">
+          <div class="panel-title"><div class="panel-dot dot-auth"></div>Auth Schema</div>
+          <button class="copy-btn" onclick="copyPanel('authContent')">Copy</button>
+        </div>
+        <div class="panel-content" id="authContent"></div>
+      </div>
+    </div>
+
+    <!-- Execution Report -->
+    <div class="result-panel" style="margin-bottom:16px">
+      <div class="panel-header">
+        <div class="panel-title"><div class="panel-dot dot-exec"></div>Execution Report</div>
+        <span id="execStatus" style="font-family:'Space Mono',monospace;font-size:11px"></span>
+      </div>
+      <div class="exec-checks" id="execChecks"></div>
+      <div class="routes-list" id="routesList"></div>
+    </div>
+
+    <!-- Business Logic -->
+    <div class="result-panel" style="margin-bottom:24px">
+      <div class="panel-header">
+        <div class="panel-title"><div class="panel-dot dot-biz"></div>Business Logic Rules</div>
+      </div>
+      <div class="panel-content" id="bizContent"></div>
+    </div>
+
+    <!-- Full JSON -->
+    <div class="full-output">
+      <div class="panel-header">
+        <div class="panel-title" style="color:var(--text)">📄 Full JSON Output</div>
+        <button class="copy-btn" onclick="copyFull()">Copy All</button>
+      </div>
+      <pre id="fullOutput"></pre>
+    </div>
+  </div>
+
+  <footer>AppForge · Built with Groq + LLaMA 3.3 · Multi-stage compilation pipeline</footer>
+</div>
+
+<script>
+const EXAMPLES = [
+  "Build a CRM with login, contacts, dashboard, role-based access for admin and sales reps, and a premium plan with Stripe payments. Admins can see analytics.",
+  "Create an e-commerce platform with product catalog, shopping cart, checkout with payments, order tracking, and admin panel for inventory management.",
+  "Build a SaaS analytics dashboard that tracks user events, shows real-time charts, has team workspaces, billing with Stripe, and REST API access for developers.",
+  "Build a healthcare appointment booking system with patient profiles, doctor schedules, video consultation, prescriptions, and insurance billing.",
+  "App for my business"
+];
+
+let fullResult = null;
+
+function setExample(i) {
+  document.getElementById('promptInput').value = EXAMPLES[i];
+}
+
+function clearAll() {
+  document.getElementById('promptInput').value = '';
+  document.getElementById('outputSection').classList.remove('show');
+  document.getElementById('metricsBar').classList.remove('show');
+  document.getElementById('statusBar').classList.remove('show');
+  resetStages();
+  fullResult = null;
+}
+
+function resetStages() {
+  for (let i = 1; i <= 6; i++) {
+    const el = document.getElementById('s' + i);
+    el.classList.remove('active', 'done', 'error');
+  }
+}
+
+function setStage(n, state) {
+  const el = document.getElementById('s' + n);
+  el.classList.remove('active', 'done', 'error');
+  if (state) el.classList.add(state);
+}
+
+function setStatus(msg, type = 'loading') {
+  const bar = document.getElementById('statusBar');
+  const text = document.getElementById('statusText');
+  const spinner = document.getElementById('statusSpinner');
+  bar.className = 'status-bar show ' + type;
+  text.textContent = msg;
+  spinner.style.display = type === 'loading' ? 'block' : 'none';
+}
+
+async function generate() {
+  const prompt = document.getElementById('promptInput').value.trim();
+  if (!prompt) { alert('Please enter an app description.'); return; }
+
+  const btn = document.getElementById('generateBtn');
+  btn.disabled = true;
+  resetStages();
+  document.getElementById('outputSection').classList.remove('show');
+  document.getElementById('metricsBar').classList.remove('show');
+
+  // Animate stages
+  const stageMessages = [
+    [1, 'Extracting intent from your description...'],
+    [2, 'Designing system architecture...'],
+    [3, 'Generating schemas (UI, API, DB, Auth)...'],
+    [4, 'Running refinement & consistency checks...'],
+    [5, 'Validating & repairing output...'],
+    [6, 'Finalizing output...']
+  ];
+
+  let stageIdx = 0;
+  setStage(1, 'active');
+  setStatus(stageMessages[0][1]);
+
+  const stageTimer = setInterval(() => {
+    if (stageIdx < stageMessages.length - 1) {
+      setStage(stageMessages[stageIdx][0], 'done');
+      stageIdx++;
+      setStage(stageMessages[stageIdx][0], 'active');
+      setStatus(stageMessages[stageIdx][1]);
+    }
+  }, 4000);
+
+  try {
+    const resp = await fetch('/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt })
+    });
+
+    clearInterval(stageTimer);
+
+    // Safely parse response — guard against plain-text error bodies
+    const rawText = await resp.text();
+    let data;
+    try {
+      data = JSON.parse(rawText);
+    } catch (_) {
+      throw new Error(rawText.slice(0, 300) || 'Server returned non-JSON response (status ' + resp.status + ')');
+    }
+
+    if (!resp.ok) {
+      throw new Error(data.detail || data.message || 'Server error (' + resp.status + ')');
+    }
+
+    fullResult = data;
+
+    // Mark all stages done
+    for (let i = 1; i <= 6; i++) setStage(i, 'done');
+
+    if (data.status === 'clarification_needed') {
+      setStatus('⚠ Clarification needed: ' + data.message, 'error');
+      btn.disabled = false;
+      return;
+    }
+
+    setStatus('✓ Pipeline complete — config is executable', 'success');
+
+    renderResults(data);
+  } catch (e) {
+    clearInterval(stageTimer);
+    for (let i = 1; i <= 6; i++) setStage(i, 'error');
+    setStatus('✗ Error: ' + e.message, 'error');
+    console.error(e);
+  }
+
+  btn.disabled = false;
+}
+
+function renderResults(data) {
+  const config = data.config || {};
+  const metrics = data.metrics || {};
+  const validation = data.validation || {};
+  const exec = data.execution_report || {};
+
+  // Metrics
+  document.getElementById('mTime').textContent = (metrics.stage_times?.total || '?') + 's';
+  document.getElementById('mTokens').textContent = metrics.tokens_used || '?';
+  document.getElementById('mRetries').textContent = metrics.retries ?? '?';
+  document.getElementById('mRepairs').textContent = metrics.repair_count ?? '?';
+  document.getElementById('mValid').textContent = validation.is_valid ? '✓' : '✗';
+  document.getElementById('mValid').style.color = validation.is_valid ? 'var(--accent3)' : 'var(--accent2)';
+  document.getElementById('metricsBar').classList.add('show');
+
+  // Assumptions
+  const assumptions = metrics.assumptions || [];
+  if (assumptions.length > 0) {
+    const panel = document.getElementById('assumptionsPanel');
+    const list = document.getElementById('assumptionsList');
+    panel.style.display = 'block';
+    list.innerHTML = assumptions.map(a => `<li>${a}</li>`).join('');
+  }
+
+  // Validation
+  const valItems = document.getElementById('valItems');
+  valItems.innerHTML = '';
+  if (validation.errors?.length === 0 && validation.warnings?.length === 0) {
+    valItems.innerHTML = '<div class="val-item ok">✓ All validation checks passed — schema is cross-layer consistent</div>';
+  } else {
+    (validation.errors || []).forEach(e => {
+      valItems.innerHTML += `<div class="val-item error">✗ ${e}</div>`;
+    });
+    (validation.warnings || []).forEach(w => {
+      valItems.innerHTML += `<div class="val-item warning">⚠ ${w}</div>`;
+    });
+  }
+
+  // Schema panels
+  document.getElementById('uiContent').textContent = JSON.stringify(config.ui_schema || {}, null, 2);
+  document.getElementById('apiContent').textContent = JSON.stringify(config.api_schema || {}, null, 2);
+  document.getElementById('dbContent').textContent = JSON.stringify(config.db_schema || {}, null, 2);
+  document.getElementById('authContent').textContent = JSON.stringify(config.auth_schema || {}, null, 2);
+
+  // Business logic
+  const biz = config.business_logic || [];
+  document.getElementById('bizContent').textContent = biz.length > 0
+    ? JSON.stringify(biz, null, 2)
+    : '// No business logic rules generated';
+
+  // Exec report
+  const execStatus = document.getElementById('execStatus');
+  execStatus.textContent = exec.status === 'executable' ? '✓ EXECUTABLE' : '⚠ NEEDS FIXES';
+  execStatus.style.color = exec.status === 'executable' ? 'var(--accent3)' : 'var(--accent2)';
+
+  const execChecks = document.getElementById('execChecks');
+  execChecks.innerHTML = (exec.checks || []).map(c =>
+    `<div class="exec-check"><span class="check-icon">${c.pass ? '✅' : '❌'}</span><span style="font-family:'Space Mono',monospace;font-size:11px;color:${c.pass ? 'var(--accent3)' : 'var(--accent2)'}">${c.check}</span></div>`
+  ).join('');
+
+  const routesList = document.getElementById('routesList');
+  routesList.innerHTML = (exec.simulated_routes || []).map(r => {
+    const [method, ...pathParts] = r.split(' ');
+    return `<div class="route-tag"><span class="method">${method}</span><span class="route-path">${pathParts.join(' ')}</span></div>`;
+  }).join('');
+
+  // Full JSON
+  document.getElementById('fullOutput').textContent = JSON.stringify(data, null, 2);
+
+  document.getElementById('outputSection').classList.add('show');
+  document.getElementById('outputSection').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function copyPanel(id) {
+  const text = document.getElementById(id).textContent;
+  navigator.clipboard.writeText(text).then(() => alert('Copied!'));
+}
+
+function copyFull() {
+  if (fullResult) {
+    navigator.clipboard.writeText(JSON.stringify(fullResult, null, 2)).then(() => alert('Full JSON copied!'));
+  }
+}
+
+// Health check on load — show warning if API key not configured
+window.addEventListener('load', async () => {
+  try {
+    const r = await fetch('/health');
+    if (!r.ok) return; // server still starting, skip
+    const h = await r.json();
+    if (h.groq_key_configured === false) {
+      setStatus(
+        '⚠ GROQ_API_KEY is not set. Get a free key at console.groq.com/keys, then add it to your .env file and restart the server.',
+        'error'
+      );
+      document.getElementById('statusBar').style.display = 'flex';
+    }
+    // Key is fine — don't show anything, let user use the app normally
+  } catch (_) {
+    // Server not ready yet or unreachable — silently ignore
+  }
+});
+
+// Allow Ctrl+Enter to generate
+document.addEventListener('keydown', e => {
+  if (e.ctrlKey && e.key === 'Enter') generate();
+});
+</script>
+</body>
+</html>
